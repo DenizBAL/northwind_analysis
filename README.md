@@ -82,7 +82,7 @@ FROM Orders o
 JOIN [Order Details] od ON o.OrderID = od.OrderID
 GROUP BY o.OrderID, o.CustomerID;
 ```
-> **Bulgu:** ** En yüksek sipariş tutarı : 16387.5$'dır  VE En düşük sipariş tutarı: 12.5$'dır 
+> **Bulgu:** En yüksek sipariş tutarı 16.387,50$, en düşük 12,50$.
 
 ### 3.5 Cirosuna göre ilk 10 müşteri
 ```sql
@@ -100,20 +100,15 @@ ORDER BY Ciro DESC;
 ```sql
 WITH Aylik AS (
   SELECT DATEFROMPARTS(YEAR(o.OrderDate), MONTH(o.OrderDate), 1) AS Ay,
-         SUM(od.UnitPrice * od.Quantity * (1 - od.Discount)) AS Ciro
+		 SUM(od.UnitPrice * od.Quantity * (1 - od.Discount)) AS Ciro
   FROM Orders o
   JOIN [Order Details] od ON o.OrderID = od.OrderID
   GROUP BY YEAR(o.OrderDate), MONTH(o.OrderDate)
 )
-SELECT Ay,
-       CAST(Ciro AS DECIMAL(12,2)) AS Ciro,
-       CAST(SUM(Ciro) OVER (ORDER BY Ay) AS DECIMAL(12,2)) AS KumulatifCiro
+SELECT Ay, Ciro, SUM(Ciro) OVER (ORDER BY Ay) AS KumulatifCiro
 FROM Aylik;
 ```
-> **Bulgu:**
-> En yüksek ciro Nisan 1998'de (123.798,68$), onu Mart 1998 (104.854,16$) ve Şubat 1998 (99.415,29$) izliyor. En yüksek üç ayın üçü de 1998'in ilk aylarında.
-> En düşük ciro Ağustos 1996 (25.485,27$). Mayıs 1998 veri ayın başında bittiği için eksik bir ay (18.333,63$), karşılaştırmaya dahil edilmedi.
-> Ciro dalgalı ama zaman içinde yükselen bir eğilimde.
+> **Bulgu:** Ciro dalgalı ama zaman içinde yükselen bir eğilimde, en yüksek üç ay 1998'in ilk aylarında (ayrıntı için 3.9).
 
 ### 3.7 Geciken sevkiyatlar (kargo firmasına göre)
 ```sql
@@ -126,11 +121,12 @@ JOIN Shippers s ON o.ShipVia = s.ShipperID
 WHERE o.ShippedDate IS NOT NULL
 GROUP BY s.CompanyName;
 ```
-> **Bulgu:** Kargo firmalarının gecikme oranları :
-  Federal Shipping: %3,6 (249 sevkiyatta 9 gecikme)   
-  Speedy Express: %4,9 (245 sevkiyatta 12 gecikme)   
-  United Package: %5,1 (315 sevkiyatta 16 gecikme)   
-  (Hesaplamalar: 9/249 ≈ %3.61, 12/245 ≈ %4.90, 16/315 ≈ %5.08)
+> **Bulgu:** Kargo firmalarının gecikme oranları:
+> - Federal Shipping: %3,6 (249 sevkiyatta 9 gecikme)
+> - Speedy Express: %4,9 (245 sevkiyatta 12 gecikme)
+> - United Package: %5,1 (315 sevkiyatta 16 gecikme)
+>
+> Oranlar birbirine yakın ve gecikme sayıları düşük, bu veriyle firmalar arasında anlamlı bir performans farkı söylemek zor.
 
 ### 3.8 Kritik stoktaki ürünler
 ```sql
@@ -141,9 +137,32 @@ JOIN Suppliers su ON p.SupplierID = su.SupplierID
 WHERE p.UnitsInStock + p.UnitsOnOrder < p.ReorderLevel
   AND p.Discontinued = 0;
 ```
-> **Bulgu:** Kritik stok seviyesinde 2 ürün tespit edilmiştir. Bunlar;
-  Nord-Ost Matjeshering — Tedarikçi: Nord-Ost-Fisch Handelsgesellschaft mbH   
-  Outback Lager — Tedarikçi: Pavlova, Ltd. 
+> **Bulgu:** Kritik stok seviyesinde 2 ürün tespit edildi:
+> - Nord-Ost Matjeshering (tedarikçi: Nord-Ost-Fisch Handelsgesellschaft mbH)
+> - Outback Lager (tedarikçi: Pavlova, Ltd.)
+
+### 3.9 En yüksek ve en düşük aylar (kontrol sorgusu)
+```sql
+-- En yüksek 3 ay
+SELECT TOP 3 Ay, Ciro FROM (
+  SELECT DATEFROMPARTS(YEAR(o.OrderDate), MONTH(o.OrderDate), 1) AS Ay,
+         CAST(SUM(od.UnitPrice * od.Quantity * (1 - od.Discount)) AS DECIMAL(12,2)) AS Ciro
+  FROM Orders o JOIN [Order Details] od ON o.OrderID = od.OrderID
+  GROUP BY YEAR(o.OrderDate), MONTH(o.OrderDate)) x
+ORDER BY Ciro DESC;
+
+-- En düşük 3 ay
+SELECT TOP 3 Ay, Ciro FROM (
+  SELECT DATEFROMPARTS(YEAR(o.OrderDate), MONTH(o.OrderDate), 1) AS Ay,
+         CAST(SUM(od.UnitPrice * od.Quantity * (1 - od.Discount)) AS DECIMAL(12,2)) AS Ciro
+  FROM Orders o JOIN [Order Details] od ON o.OrderID = od.OrderID
+  GROUP BY YEAR(o.OrderDate), MONTH(o.OrderDate)) x
+ORDER BY Ciro ASC;
+```
+> **Bulgu:**
+> - En yüksek ciro Nisan 1998'de (123.798,68$), onu Mart 1998 (104.854,16$) ve Şubat 1998 (99.415,29$) izliyor. En yüksek üç ayın üçü de 1998'in ilk aylarında.
+> - En düşük tam ay Ağustos 1996 (25.485,27$). Mayıs 1998 veri ayın başında bittiği için eksik bir ay (18.333,63$), karşılaştırmaya dahil edilmedi.
+> - Ciro dalgalı ama zaman içinde yükselen bir eğilimde.
 
 ## Öğrendiklerim
 - Veriye bakmadan önce **iş akışını** çıkarmak, hangi tabloya neden bakacağımı netleştirdi.
