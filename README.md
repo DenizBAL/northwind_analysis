@@ -110,7 +110,10 @@ SELECT Ay,
        CAST(SUM(Ciro) OVER (ORDER BY Ay) AS DECIMAL(12,2)) AS KumulatifCiro
 FROM Aylik;
 ```
-> **Bulgu:** En yüksek ciro 1997-10-01 ayında (66.749,23$), en düşük ciro ise 1996-08-01 ayında (25.485,27$) elde edilmiştir. Ciro genel olarak zaman içinde dalgalı ancak yükselen bir trend (eğilim) izlemektedir.
+> **Bulgu:**
+> En yüksek ciro Nisan 1998'de (123.798,68$), onu Mart 1998 (104.854,16$) ve Şubat 1998 (99.415,29$) izliyor. En yüksek üç ayın üçü de 1998'in ilk aylarında.
+> En düşük ciro Ağustos 1996 (25.485,27$). Mayıs 1998 veri ayın başında bittiği için eksik bir ay (18.333,63$), karşılaştırmaya dahil edilmedi.
+> Ciro dalgalı ama zaman içinde yükselen bir eğilimde.
 
 ### 3.7 Geciken sevkiyatlar (kargo firmasına göre)
 ```sql
